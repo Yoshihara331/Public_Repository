@@ -1,0 +1,38 @@
+<h1>ホームページ</h1>
+<p>ようこそ！</p>
+
+<!-- ユーザーのログイン状態に応じてボタンを切り替える -->
+{% if user.is_authenticated %}
+    <p>こんにちは、{{ user.username }} さん！</p>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">🚪 ログアウト</button>
+    </form>
+{% else %}
+    <a href="{% url 'login' %}">🔑 ログイン</a>
+{% endif %}
+
+<hr>
+
+<!-- 目標一覧へのリンク -->
+<a href="{% url 'goal_list' %}">📌 目標一覧へ</a>
+
+<!-- 進捗バー（既にある場合はそのまま） -->
+<h2>あなたの目標の進捗</h2>
+{% if goals %}
+    <ul>
+        {% for goal in goals %}
+            <li>
+                <strong>{{ goal.title }}</strong>
+                <br>
+                <div style="width: 300px; height: 20px; background-color: #ddd; border-radius: 5px; overflow: hidden;">
+                    <div style="width: {{ goal.actual_count|floatformat:0 }}%; height: 100%; background-color: #4CAF50;">
+                    </div>
+                </div>
+                <p>達成状況: {{ goal.actual_count }}/{{ goal.target_count }}</p>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>現在、目標がありません。</p>
+{% endif %}

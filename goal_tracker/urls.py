@@ -16,8 +16,17 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.urls import path, include
+from goal_tracker import views  # 追加
+from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path('', views.home, name='home'),  # "home" のURLを定義
+    path('admin/', admin.site.urls),
+    path('accounts/', include('accounts.urls')),
+    path('goals/', include('goals.urls')),
+    path('accounts/logout/', LogoutView.as_view(next_page='/'), name='logout'),  # 修正！
 ]
+
+
