@@ -1,6 +1,48 @@
 <h2>ユーザー登録</h2>
+
+<!-- エラーメッセージを表示 -->
+{% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li style="color: red; font-weight: bold;">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
+    
+    <!-- 各フィールドのエラーを表示 -->
+    <div>
+        <label for="id_username">ユーザー名:</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+            <span style="color: red;">{{ form.username.errors }}</span>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="id_password1">パスワード:</label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+            <span style="color: red;">{{ form.password1.errors }}</span>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="id_password2">パスワード（確認用）:</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+            <span style="color: red;">{{ form.password2.errors }}</span>
+        {% endif %}
+    </div>
+
     <button type="submit">登録</button>
 </form>
+
+<!-- ログイン画面に戻るボタン -->
+<div style="margin-top: 10px;">
+    <a href="{% url 'login' %}" style="text-decoration: none;">
+        <button type="button">ログイン画面に戻る</button>
+    </a>
+</div>

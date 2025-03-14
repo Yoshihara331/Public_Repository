@@ -1,9 +1,31 @@
 <h2>ログイン</h2>
+
+<!-- フォームのエラーメッセージを表示 -->
+{% if form.errors %}
+    <ul>
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li style="color: red; font-weight: bold;">{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+{% endif %}
+
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
+    
+    <div class="form-container">
+        <p>
+            <label for="{{ form.username.id_for_label }}">ユーザー名:</label>
+            {{ form.username }}
+        </p>
+        <p>
+            <label for="{{ form.password.id_for_label }}">パスワード:</label>
+            {{ form.password }}
+        </p>
+    </div>
+
     <button type="submit">ログイン</button>
 </form>
 
-<!-- 🔰 新規登録ページへのリンク -->
-<a href="{% url 'signup' %}"> 新規登録はこちら</a>
+<a href="{% url 'signup' %}">新規登録はこちら</a>
