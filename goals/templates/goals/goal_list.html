@@ -1,20 +1,22 @@
-<h2>目標一覧</h2>
+{% extends 'base.html' %}
 
-<ul>
+{% block content %}
+  <h2>目標一覧</h2>
+  <ul class="list-group">
     {% for goal in goals %}
-        <li>
-            <strong>{{ goal.title }}</strong> (進捗: {{ goal.actual_count }}/{{ goal.target_count }})
-            <a href="{% url 'goal_edit' goal.id %}">編集</a>
-            <a href="{% url 'goal_delete' goal.id %}">削除</a>
-        </li>
+      <li class="list-group-item">
+        <strong>{{ goal.title }}</strong><br>
+        <span class="text-muted">{{ goal.description }}</span>
+        <div class="mt-2">
+          <a href="{% url 'goal_edit' goal.id %}" class="btn btn-sm btn-outline-primary">編集</a>
+          <a href="{% url 'goal_delete' goal.id %}" class="btn btn-sm btn-outline-danger">削除</a>
+        </div>
+      </li>
     {% empty %}
-        <li>目標がまだありません。</li>
+      <li class="list-group-item">目標がまだありません。</li>
     {% endfor %}
-</ul>
+  </ul>
 
-<!-- 新しい目標追加ボタン -->
-<a href="{% url 'goal_create' %}">＋ 新しい目標を追加</a>
-
-<!-- 🏠 ホームに戻るボタン -->
-<br><br>
-<a href="{% url 'home' %}">🏠 ホームへ戻る</a>
+  <a href="{% url 'goal_create' %}" class="btn btn-success mt-4">＋ 新しい目標を追加</a>
+  <a href="{% url 'home' %}" class="btn btn-secondary mt-2 ms-2">🏠 ホームへ戻る</a>
+{% endblock %}

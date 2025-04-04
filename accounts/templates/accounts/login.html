@@ -1,31 +1,20 @@
-<h2>ログイン</h2>
+{% extends "base.html" %}
 
-<!-- フォームのエラーメッセージを表示 -->
-{% if form.errors %}
-    <ul>
-        {% for field, errors in form.errors.items %}
-            {% for error in errors %}
-                <li style="color: red; font-weight: bold;">{{ error }}</li>
-            {% endfor %}
+{% block title %}ログイン{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">ログイン</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
         {% endfor %}
-    </ul>
-{% endif %}
-
-<form method="POST">
-    {% csrf_token %}
-    
-    <div class="form-container">
-        <p>
-            <label for="{{ form.username.id_for_label }}">ユーザー名:</label>
-            {{ form.username }}
-        </p>
-        <p>
-            <label for="{{ form.password.id_for_label }}">パスワード:</label>
-            {{ form.password }}
-        </p>
-    </div>
-
-    <button type="submit">ログイン</button>
-</form>
-
-<a href="{% url 'signup' %}">新規登録はこちら</a>
+    {% endif %}
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">ログイン</button>
+    </form>
+    <p class="mt-3">アカウントをお持ちでない方は <a href="{% url 'signup' %}">新規登録</a></p>
+</div>
+{% endblock %}

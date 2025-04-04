@@ -1,7 +1,14 @@
-<h2>{% if form.instance.pk %}目標を編集{% else %}新しい目標を追加{% endif %}</h2>
-<form method="POST">
+{% extends 'base.html' %}
+
+{% block title %}目標の作成・編集{% endblock %}
+
+{% block content %}
+  <h2>{% if form.instance.pk %}目標の編集{% else %}新しい目標の作成{% endif %}</h2>
+
+  <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">保存</button>
-</form>
-<a href="{% url 'goal_list' %}">⏎ 目標一覧に戻る</a>
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'goal_list' %}" class="btn btn-secondary">戻る</a>
+  </form>
+{% endblock %}

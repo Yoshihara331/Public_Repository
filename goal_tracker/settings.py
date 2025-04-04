@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts', 
     'goals',
+    'habits',
 ]
 
 MIDDLEWARE = [
@@ -130,5 +131,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ログイン後/ログアウト後のリダイレクト設定
-LOGIN_REDIRECT_URL = '/'  # ログイン後はトップページへ
-LOGOUT_REDIRECT_URL = '/accounts/login/'  # ログアウト後はログインページへ
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'  # ログアウト後にログインページへリダイレクト

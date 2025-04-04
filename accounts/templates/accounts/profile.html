@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}プロフィール{% endblock %}
+
+{% block content %}
+  <h2>プロフィール</h2>
+  <p><strong>ユーザー名:</strong> {{ user.username }}</p>
+  <p><strong>メールアドレス:</strong> {{ user.email }}</p>
+
+  <a href="{% url 'profile_edit' %}" class="btn btn-outline-primary">プロフィールを編集</a>
+  <a href="{% url 'password_change' %}" class="btn btn-outline-secondary">パスワードを変更</a>
+{% endblock %}

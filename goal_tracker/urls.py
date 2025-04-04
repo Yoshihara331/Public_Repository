@@ -26,7 +26,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('goals/', include('goals.urls')),
-    path('accounts/logout/', LogoutView.as_view(next_page='/'), name='logout'),  # 修正！
+    path('habits/', include('habits.urls')),
+    path('accounts/logout/', LogoutView.as_view(next_page='/'), name='logout'),  
 ]
 
 

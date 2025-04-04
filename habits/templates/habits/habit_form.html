@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}習慣作成・編集{% endblock %}
+
+{% block content %}
+  <h2>{{ form.instance.pk|yesno:"習慣編集,習慣作成" }}</h2>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <!-- 習慣名 -->
+    <div class="mb-3">
+      <label for="{{ form.habit_name.id_for_label }}" class="form-label">習慣名</label>
+      {{ form.habit_name }}
+      {% for error in form.habit_name.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <!-- 紐づく目標 -->
+    <div class="mb-3">
+      <label for="{{ form.goal.id_for_label }}" class="form-label">目標</label>
+      {{ form.goal }}
+      {% for error in form.goal.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <!-- 実行曜日（チェックボックス） -->
+    <div class="mb-3">
+      <label class="form-label">実行曜日</label>
+      <div class="form-check">
+        {% for day in form.schedule_days %}
+          <div class="form-check">
+            <label class="form-check-label" for="{{ day.id_for_label }}">
+              {{ day.tag }} {{ day.choice_label }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+      {% for error in form.schedule_days.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'habit_list' %}" class="btn btn-secondary">戻る</a>
+  </form>
+{% endblock %}

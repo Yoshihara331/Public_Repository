@@ -1,38 +1,142 @@
-<h1>ホームページ</h1>
-<p>ようこそ！</p>
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_tags %}
 
-<!-- ユーザーのログイン状態に応じてボタンを切り替える -->
-{% if user.is_authenticated %}
-    <p>こんにちは、{{ user.username }} さん！</p>
-    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit">🚪 ログアウト</button>
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-calendar-check"></i> 今日の習慣チェック</h2>
+
+    <form method="get" class="mb-4">
+        <label for="date-input">表示する日付：</label>
+        <input type="date" id="date-input" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+        <button type="submit" class="btn btn-outline-primary">表示</button>
     </form>
-{% else %}
-    <a href="{% url 'login' %}">🔑 ログイン</a>
-{% endif %}
 
-<hr>
+    <p><strong>表示中の日付：</strong>{{ selected_date|date:"Y年n月j日" }}</p>
 
-<!-- 目標一覧へのリンク -->
-<a href="{% url 'goal_list' %}">📌 目標一覧へ</a>
+    {% for goal, habits in goal_habit_map.items %}
+        <h4>{{ goal.goal_name }}</h4>
+        {% if habits %}
+            <ul class="list-unstyled">
+                {% for habit in habits %}
+                    <li>
+                        <strong>{{ habit.habit_name }}</strong>
+                        <button class="btn btn-sm toggle-btn {% if log_map.habit.id %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                                data-habit-id="{{ habit.id }}"
+                                data-selected-date="{{ selected_date }}">
+                            {% if log_map.habit.id %}
+                                ✅ 達成
+                            {% else %}
+                                ❌ 未達成
+                            {% endif %}
+                        </button>
+                        <button class="btn btn-sm btn-link text-decoration-none comment-btn" data-habit-id="{{ habit.id }}">
+                            ✏️ コメントを書く
+                        </button>
 
-<!-- 進捗バー（既にある場合はそのまま） -->
-<h2>あなたの目標の進捗</h2>
-{% if goals %}
-    <ul>
-        {% for goal in goals %}
-            <li>
-                <strong>{{ goal.title }}</strong>
-                <br>
-                <div style="width: 300px; height: 20px; background-color: #ddd; border-radius: 5px; overflow: hidden;">
-                    <div style="width: {{ goal.actual_count|floatformat:0 }}%; height: 100%; background-color: #4CAF50;">
-                    </div>
-                </div>
-                <p>達成状況: {{ goal.actual_count }}/{{ goal.target_count }}</p>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>現在、目標がありません。</p>
-{% endif %}
+                        <div class="comment-form mt-2 d-none" id="comment-form-{{ habit.id }}">
+                            <textarea class="form-control mb-2" rows="2" placeholder="習慣へのコメントを入力してください..."></textarea>
+                            <button class="btn btn-sm btn-primary submit-comment-btn" data-habit-id="{{ habit.id }}">コメント保存</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">習慣が登録されていません。</p>
+        {% endif %}
+    {% endfor %}
+
+    <hr>
+
+    <h4><i class="bi bi-journal-text"></i> 今日の振り返りメモ</h4>
+    <form method="post" action="{% url 'save_summary_note' %}" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+        <textarea name="note" class="form-control mb-2" rows="3" placeholder="今日1日の感想・気づき・反省などを記録...">{% if daily_report %}{{ daily_report.note }}{% endif %}</textarea>
+        <button type="submit" class="btn btn-primary">メモを保存</button>
+    </form>
+    {% if daily_report and daily_report.note %}
+        <div class="alert alert-info mt-4">
+            <strong>{{ selected_date|date:"Y年m月d日" }} の振り返り：</strong><br>
+            {{ daily_report.note|linebreaksbr }}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggleButtons = document.querySelectorAll(".toggle-btn");
+    toggleButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            const habitId = this.dataset.habitId;
+            const selectedDate = document.getElementById("date-input").value;
+
+            fetch("/habits/toggle/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: `habit_id=${habitId}&date=${selectedDate}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerHTML = data.completed ? "✅ 達成" : "❌ 未達成";
+                    this.classList.toggle("btn-success", data.completed);
+                    this.classList.toggle("btn-outline-secondary", !data.completed);
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll(".comment-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            const habitId = this.dataset.habitId;
+            const form = document.getElementById(`comment-form-${habitId}`);
+            form.classList.toggle("d-none");
+        });
+    });
+
+    document.querySelectorAll(".submit-comment-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            const habitId = this.dataset.habitId;
+            const form = document.getElementById(`comment-form-${habitId}`);
+            const textarea = form.querySelector("textarea");
+            const comment = textarea.value;
+            const selectedDate = document.getElementById("date-input").value;
+
+            fetch("{% url 'save_comment' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: new URLSearchParams({
+                    habit_id: habitId,
+                    comment: comment,
+                    date: selectedDate,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("コメントを保存しました！");
+                    form.classList.add("d-none");
+                } else {
+                    alert("保存に失敗しました: " + data.message);
+                }
+            })
+            .catch(error => {
+                alert("通信エラーが発生しました");
+                console.error("Error:", error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+
