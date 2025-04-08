@@ -30,9 +30,9 @@
                                 ❌ 未達成
                             {% endif %}
                         </button>
-                        <button class="btn btn-sm btn-link text-decoration-none comment-btn" data-habit-id="{{ habit.id }}">
+                        {% comment %} <button class="btn btn-sm btn-link text-decoration-none comment-btn" data-habit-id="{{ habit.id }}">
                             ✏️ コメントを書く
-                        </button>
+                        </button> {% endcomment %}
 
                         <div class="comment-form mt-2 d-none" id="comment-form-{{ habit.id }}">
                             <textarea class="form-control mb-2" rows="2" placeholder="習慣へのコメントを入力してください..."></textarea>

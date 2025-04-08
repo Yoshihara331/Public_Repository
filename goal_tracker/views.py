@@ -103,3 +103,6 @@ def save_comment(request):
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False, 'message': 'POSTメソッドのみ対応'}, status=405)
+
+def custom_404_view(request, exception):
+    return render(request, 'errors/404.html', status=404)

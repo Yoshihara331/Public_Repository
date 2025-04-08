@@ -29,5 +29,6 @@ urlpatterns = [
     path('habits/', include('habits.urls')),
     path('accounts/logout/', LogoutView.as_view(next_page='/'), name='logout'),  
 ]
-
+# ファイルの最後に追加（urlpatternsの下でOK）
+handler404 = 'goal_tracker.views.custom_404_view'
 

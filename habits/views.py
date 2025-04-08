@@ -17,29 +17,34 @@ def habit_list(request):
 @login_required
 def habit_create(request):
     if request.method == 'POST':
-        form = HabitForm(request.POST)
+        form = HabitForm(request.POST, user=request.user)
         if form.is_valid():
             habit = form.save(commit=False)
             habit.user = request.user
             habit.save()
             return redirect('habit_list')
     else:
-        form = HabitForm()
+        form = HabitForm(user=request.user)
     return render(request, 'habits/habit_form.html', {'form': form})
-
 
 @login_required
 def habit_edit(request, habit_id):
     habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+    
     if request.method == 'POST':
-        form = HabitForm(request.POST, instance=habit)
+        form = HabitForm(request.POST, instance=habit, user=request.user)
         if form.is_valid():
             form.save()
             return redirect('habit_list')
     else:
-        form = HabitForm(instance=habit)
-        form.fields['schedule_days'].initial = habit.schedule_days.split(',')
+        # カンマ区切りの曜日 → リストに変換して初期値として渡す
+        initial_data = {
+            'schedule_days': habit.schedule_days.split(','),
+        }
+        form = HabitForm(instance=habit, initial=initial_data, user=request.user)
+
     return render(request, 'habits/habit_form.html', {'form': form})
+
 
 
 @login_required

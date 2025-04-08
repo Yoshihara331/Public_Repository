@@ -9,14 +9,16 @@
         <span class="text-muted">{{ goal.description }}</span>
         <div class="mt-2">
           <a href="{% url 'goal_edit' goal.id %}" class="btn btn-sm btn-outline-primary">編集</a>
-          <a href="{% url 'goal_delete' goal.id %}" class="btn btn-sm btn-outline-danger">削除</a>
+          <a href="{% url 'goal_delete' goal.id %}" class="btn btn-sm btn-outline-danger" 
+            onclick="return confirm('本当に削除しますか？')">
+            削除
+          </a>
         </div>
       </li>
     {% empty %}
       <li class="list-group-item">目標がまだありません。</li>
     {% endfor %}
   </ul>
-
-  <a href="{% url 'goal_create' %}" class="btn btn-success mt-4">＋ 新しい目標を追加</a>
-  <a href="{% url 'home' %}" class="btn btn-secondary mt-2 ms-2">🏠 ホームへ戻る</a>
+    <a href="{% url 'goal_create' %}" class="btn btn-success mt-2">＋ 新しい目標を追加</a>  {% comment %} m + 方向 + 数字 m=上下左右, mt=上, mb=下, ms=左, me=右 {% endcomment %}
+    <a href="{% url 'home' %}" class="btn btn-secondary mt-2 ms-2">🏠 ホームへ戻る</a> 
 {% endblock %}

@@ -1,15 +1,16 @@
 from django import forms
 from .models import Habit
+from goals.models import Goal  # ← 追加
 
 class HabitForm(forms.ModelForm):
     DAYS_OF_WEEK = [
-        ('月', '月曜日'),
-        ('火', '火曜日'),
+        ('月', '月曜日'), 
+        ('火', '火曜日'), 
         ('水', '水曜日'),
-        ('木', '木曜日'),
-        ('金', '金曜日'),
-        ('土', '土曜日'),
-        ('日', '日曜日'),
+        ('木', '木曜日'), 
+        ('金', '金曜日'), 
+        ('土', '土曜日'), 
+        ('日', '日曜日')
     ]
 
     schedule_days = forms.MultipleChoiceField(
@@ -17,6 +18,12 @@ class HabitForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         label="実施曜日"
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['goal'].queryset = Goal.objects.filter(user=user)
 
     class Meta:
         model = Habit
@@ -28,4 +35,4 @@ class HabitForm(forms.ModelForm):
 
     def clean_schedule_days(self):
         data = self.cleaned_data['schedule_days']
-        return ','.join(data)  # DBにはカンマ区切りで保存
+        return ','.join(data)
