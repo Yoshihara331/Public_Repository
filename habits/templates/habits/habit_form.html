@@ -19,47 +19,90 @@
 
   <!-- 紐づく目標 -->
   <div class="mb-3">
-    <label for="{{ form.goal.id_for_label }}" class="form-label">目標</label>
+    <label for="{{ form.goal.id_for_label }}" class="form-label">カテゴリー</label>
     {{ form.goal }}
     {% for error in form.goal.errors %}
       <div class="text-danger small">{{ error }}</div>
     {% endfor %}
   </div>
 
-  <!-- 実行曜日（チェックボックス） -->
+  <!-- 🎯 目標（数値 + 単位 + 頻度） -->
   <div class="mb-3">
-    <label class="form-label">実行曜日</label>
-    <div class="mb-2">
-      <button type="button" id="select-all" class="btn btn-outline-success btn-sm ms-2">全選択</button>
-      <button type="button" id="deselect-all" class="btn btn-outline-danger btn-sm ms-2">全解除</button>
-    </div>
-
-    <div class="form-check">
-      {% for checkbox in form.schedule_days %}
-      <div class="form-check">
-        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-          {{ checkbox.tag }} {{ checkbox.choice_label }}
-        </label>
+    <label class="form-label">目標</label>
+    <div class="d-flex gap-2 flex-wrap">
+      <div>
+        {{ form.target_value }}
       </div>
-      {% endfor %}
+      <div>
+        {{ form.target_unit }}
+      </div>
+      <div>
+        {{ form.target_frequency }}
+      </div>
     </div>
 
-    {% for error in form.schedule_days.errors %}
+    <!-- ✨ 個別エラー表示 -->
+    {% for error in form.target_value.errors %}
+      <div class="text-danger small">{{ error }}</div>
+    {% endfor %}
+    {% for error in form.target_unit.errors %}
+      <div class="text-danger small">{{ error }}</div>
+    {% endfor %}
+    {% for error in form.target_frequency.errors %}
       <div class="text-danger small">{{ error }}</div>
     {% endfor %}
   </div>
 
-  <!-- 保存ボタン -->
+<!-- 🗓️ 実施曜日（チェックボタン風＋全選択/全解除） -->
+<div class="mb-3">
+  <label class="form-label">実施曜日</label>
+
+  <!-- 全選択・全解除 -->
+  <button type="button" id="select-all" class="btn btn-outline-success btn-sm ms-2">全選択</button>
+  <button type="button" id="deselect-all" class="btn btn-outline-danger btn-sm ms-2">全解除</button>
+
+  <!-- 手動で曜日を描画 -->
+  <div class="d-flex flex-wrap gap-2">
+    {% for day in "月火水木金土日" %}
+      <div class="form-check form-check-inline">
+        <input class="btn-check schedule-day" type="checkbox" name="schedule_days"
+               value="{{ day }}"
+               id="schedule_{{ day }}"
+               {% if day in form.data.schedule_days or day in form.initial.schedule_days %}checked{% endif %}>
+        <label class="btn btn-outline-primary btn-sm" for="schedule_{{ day }}">{{ day }}</label>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% for error in form.schedule_days.errors %}
+    <div class="text-danger small">{{ error }}</div>
+  {% endfor %}
+</div>
+
+
+
+  <!-- 🌟 アイコン -->
+  <div class="mb-3">
+    <label for="{{ form.icon.id_for_label }}" class="form-label">アイコン</label>
+    {{ form.icon }}
+    {% for error in form.icon.errors %}
+      <div class="text-danger small">{{ error }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- ✅ 保存・戻る -->
   <button type="submit" class="btn btn-primary">保存</button>
   <a href="{% url 'habit_list' %}" class="btn btn-secondary">戻る</a>
 </form>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const checkboxes = document.querySelectorAll('input[name="schedule_days"]');
+    const checkboxes = document.querySelectorAll('.schedule-day'); // ← class指定に変更！
+
     document.getElementById("select-all").addEventListener("click", () => {
       checkboxes.forEach(cb => cb.checked = true);
     });
+
     document.getElementById("deselect-all").addEventListener("click", () => {
       checkboxes.forEach(cb => cb.checked = false);
     });
@@ -85,4 +128,5 @@
     return confirm("本当にこの内容で保存しますか？");
   }
 </script>
+
 {% endblock %}

@@ -5,11 +5,11 @@
 {% block content %}
 <div class="container">
     <h2 class="mb-4">プロフィール編集</h2>
-    {% if messages %}
+    {% comment %} {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">{{ message }}</div>
         {% endfor %}
-    {% endif %}
+    {% endif %} {% endcomment %}
     <form method="POST">
         {% csrf_token %}
         {{ form.as_p }}

@@ -6,26 +6,37 @@
   <h2>あなたの習慣一覧</h2>
 
   {% if habits %}
-    <ul class="list-group mb-4">
-      {% for habit in habits %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>{{ habit.habit_name }}</strong><br>
-            <small class="text-muted">曜日: {{ habit.schedule_days }}</small>
-          </div>
-          <div>
-            <a href="{% url 'habit_edit' habit.id %}" class="btn btn-sm btn-outline-primary">編集</a>
-            <a href="{% url 'habit_delete' habit.id %}" class="btn btn-sm btn-outline-danger"
-              onclick="return confirm('本当に削除しますか？')">
-              削除
-            </a>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>習慣はまだ登録されていません。</p>
-  {% endif %}
+  <ul class="list-group mb-4">
+    {% for habit in habits %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ habit.habit_name }}</strong><br>
+          <small class="text-muted">曜日: {{ habit.schedule_days }}</small><br>
+          <small class="text-muted">目標: {{ habit.target_value }}{{ habit.target_unit }}（{{ habit.target_frequency }}）</small>
+        </div>
+        <div>
+          <a href="{% url 'habit_edit' habit.id %}" class="btn btn-sm btn-outline-primary">編集</a>
+          <a href="{% url 'habit_delete' habit.id %}" class="btn btn-sm btn-outline-danger"
+            onclick="return confirm('本当に削除しますか？')">削除</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
 
-  <a href="{% url 'habit_create' %}" class="btn btn-success">＋ 習慣を追加</a>
+  <!-- 🔥 👇 ここに移動することで位置が目標一覧と同じになる！ -->
+  <div class="mt-2">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary btn-sm">前へ</a>
+    {% endif %}
+    <span class="mx-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline-secondary btn-sm">次へ</a>
+    {% endif %}
+  </div>
+
+{% endif %}
+
+<!-- 習慣追加ボタンは下に固定しておく -->
+<a href="{% url 'habit_create' %}" class="btn btn-success mt-3">＋ 習慣を追加</a>
+
 {% endblock %}

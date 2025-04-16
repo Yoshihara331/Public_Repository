@@ -3,41 +3,60 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.auth.decorators import login_required
-from datetime import datetime
+from datetime import datetime, date
 from goals.models import Goal
-from habits.models import Habit, HabitLog, DailyReport
-
+from habits.models import Habit, DailyReport
 
 @login_required
 def home(request):
+    # ✅ 日付の取得
     date_str = request.GET.get('date')
     if date_str:
-        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        selected_date = datetime.strptime(str(date_str), "%Y-%m-%d").date()
     else:
         selected_date = timezone.localdate()
 
-    weekday = selected_date.weekday()  # 0:月〜6:日
+    # 曜日（日本語表記）を取得
+    weekday = selected_date.weekday()  # 0:月 〜 6:日
     weekday_ja = ['月', '火', '水', '木', '金', '土', '日'][weekday]
 
+    # ✅ goal, habit を取得（論理削除済みは除外）
     goals = Goal.objects.filter(user=request.user)
-    habits = Habit.objects.filter(user=request.user, schedule_days__contains=weekday_ja)
-
-    logs = HabitLog.objects.filter(habit__in=habits, date=selected_date)
-    log_map = {log.habit.id: log.completed for log in logs}
-
     goal_habit_map = {}
-    for goal in goals:
-        related_habits = habits.filter(goal=goal)
-        goal_habit_map[goal] = related_habits
+    log_map = {}
 
-    # ✅ ここが重要：DailyReport（1日の振り返り）取得
-    try:
-        daily_report = DailyReport.objects.filter(
-            user=request.user,
-            created_at__date=selected_date
-        ).first()
-    except DailyReport.DoesNotExist:
-        daily_report = None
+    for goal in goals:
+        habits = Habit.objects.filter(goal=goal, deleted_at__isnull=True, schedule_days__contains=weekday_ja)
+        habit_list = []
+
+        for habit in habits:
+            # ✅ 達成ログ確認
+            report = DailyReport.objects.filter(
+                user=request.user,
+                habit=habit,
+                date=selected_date
+            ).first()
+
+            is_done = report.status if report else False
+            log_map[habit.id] = is_done
+
+            # ✅ 達成回数カウント
+            count = DailyReport.objects.filter(habit=habit, status=True).count()
+
+            habit_list.append({
+                'habit': habit,
+                'done_count': count,
+            })
+
+        goal_habit_map[goal] = habit_list
+
+    # ✅ 日報（note, commentの保存用）も取得（goal/habitなし）
+    daily_report = DailyReport.objects.filter(
+        user=request.user,
+        date=selected_date,
+        goal=None,
+        habit=None
+    ).first()
 
     return render(request, 'home.html', {
         'goal_habit_map': goal_habit_map,
@@ -46,7 +65,6 @@ def home(request):
         'log_map': log_map,
         'daily_report': daily_report,
     })
-
 
 @csrf_protect
 @login_required
@@ -62,8 +80,13 @@ def save_summary_note(request):
 
         report, created = DailyReport.objects.get_or_create(
             user=request.user,
-            created_at=datetime.combine(target_date, datetime.min.time()),
-            defaults={'note': note_text}
+            date=target_date,
+            goal=None,
+            habit=None,
+            defaults={
+                'created_at': datetime.combine(target_date, datetime.min.time()),
+                'note': note_text
+            }
         )
 
         if not created:
@@ -71,7 +94,6 @@ def save_summary_note(request):
             report.save()
 
         return redirect(f"/?date={target_date}")
-
 
 @csrf_exempt
 @login_required
@@ -94,7 +116,8 @@ def save_comment(request):
             user=request.user,
             habit=habit,
             goal=habit.goal,
-            created_at=datetime.combine(target_date, datetime.min.time())
+            date=target_date,
+            defaults={'created_at': datetime.combine(target_date, datetime.min.time())}
         )
 
         report.comment = comment_text

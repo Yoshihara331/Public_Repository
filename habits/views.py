@@ -1,6 +1,7 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import Habit, HabitLog, DailyReport
+from .models import Habit, DailyReport
 from .forms import HabitForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -10,8 +11,15 @@ from datetime import datetime
 
 @login_required
 def habit_list(request):
-    habits = Habit.objects.filter(user=request.user, deleted_at__isnull=True)
-    return render(request, 'habits/habit_list.html', {'habits': habits})
+    habit_queryset = Habit.objects.filter(user=request.user, deleted_at__isnull=True).order_by('-created_at')
+    paginator = Paginator(habit_queryset, 5)  # 👈 1ページに5件ずつ表示
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)  # 👈 変数名を page_obj にする！
+
+    return render(request, 'habits/habit_list.html', {
+        'page_obj': page_obj,
+        'habits': page_obj.object_list,  # 👈 forループでは habits を使えるようにしておくとベター
+    })
 
 
 @login_required
@@ -19,13 +27,18 @@ def habit_create(request):
     if request.method == 'POST':
         form = HabitForm(request.POST, user=request.user)
         if form.is_valid():
+            print("✅ cleaned_data:", form.cleaned_data)  # ← 追加
             habit = form.save(commit=False)
             habit.user = request.user
             habit.save()
             return redirect('habit_list')
+        else:
+            print("❌ form.errors:", form.errors)
     else:
         form = HabitForm(user=request.user)
     return render(request, 'habits/habit_form.html', {'form': form})
+
+
 
 @login_required
 def habit_edit(request, habit_id):
@@ -72,21 +85,34 @@ def toggle_habit_log(request):
         except Habit.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Habit not found'}, status=404)
 
-        log, _ = HabitLog.objects.get_or_create(habit=habit, date=target_date)
-        log.completed = not log.completed
-        log.save()
-
-        DailyReport.objects.update_or_create(
+        # ✅ created_at__date で既存レコードを探す
+        report = DailyReport.objects.filter(
             user=request.user,
             goal=habit.goal,
             habit=habit,
-            created_at=datetime.combine(target_date, datetime.min.time()),
-            defaults={'status': log.completed}
-        )
+            date=target_date
+        ).first()
 
-        return JsonResponse({'success': True, 'completed': log.completed})
+        if not report:
+            # ✅ 新規作成時には date と created_at の両方をセット
+            report = DailyReport(
+                user=request.user,
+                goal=habit.goal,
+                habit=habit,
+                date=target_date,
+                created_at=datetime.combine(target_date, datetime.min.time())
+            )
+
+        # ✅ ステータス切り替えて保存
+        report.status = not report.status
+        report.save()
+        print("✅ 保存完了:", report)
+
+        return JsonResponse({'success': True, 'completed': report.status})
 
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
+
+
 
 
 @csrf_protect

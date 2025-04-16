@@ -7,35 +7,44 @@
 
   <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary" onclick="return validateAndConfirm(event)">保存</button>
+
+    <!-- タイトル -->
+    <div class="mb-3">
+      <label for="{{ form.title.id_for_label }}" class="form-label">目標のタイトル</label>
+      {{ form.title }}
+      {% for error in form.title.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <!-- アイコン -->
+    <div class="mb-3">
+      <label for="{{ form.icon.id_for_label }}" class="form-label">アイコン</label>
+      <select name="icon" id="{{ form.icon.id_for_label }}" class="form-select">
+        {% for value, label in form.fields.icon.choices %}
+          <option value="{{ value }}" {% if form.icon.value == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      {% for error in form.icon.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-primary" onclick="return checkTitleAndConfirm()">保存</button>
     <a href="{% url 'goal_list' %}" class="btn btn-secondary">戻る</a>
   </form>
+
   <script>
-    function validateAndConfirm(event) {
-      const form = event.target.closest("form");
-      const requiredFields = form.querySelectorAll("input[required], select[required], textarea[required]");
-      let isValid = true;
-  
-      requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-          isValid = false;
-        }
-      });
-  
-      if (!isValid) {
-        alert("未入力の項目があります。すべて入力してください。");
-        event.preventDefault(); // フォーム送信を中止
+    function checkTitleAndConfirm() {
+      const title = document.querySelector('#id_title');
+      if (!title.value.trim()) {
+        alert("目標タイトルを入力してください。");
         return false;
       }
-  
-      if (!confirm("本当にこの内容で保存しますか？")) {
-        event.preventDefault(); // フォーム送信を中止
-        return false;
-      }
-  
-      return true; // 送信OK
+
+      return confirm("本当にこの内容で保存しますか？");
     }
   </script>
 {% endblock %}
-
