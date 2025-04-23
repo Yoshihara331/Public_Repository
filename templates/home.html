@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load custom_tags %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="container mt-4">
@@ -15,22 +16,21 @@
   <p><strong>表示中の日付：</strong>{{ selected_date|date:"Y年n月j日" }}</p>
 
   {% for goal, habits in goal_habit_map.items %}
-    <!-- 🎯 目標ボタン -->
-    <button class="btn btn-outline-dark mb-2 toggle-habits w-100 text-start" data-goal-id="{{ goal.id }}">
-      <i class="fas {{ goal.icon }}"></i> {{ goal.goal_name }}
-    </button>
-
-    <!-- ✅ 習慣リスト：初期は非表示 -->
-    <div id="habit-group-{{ goal.id }}" class="ps-3 mb-4 d-none">
-      {% if habits %}
-        <ul class="list-unstyled">
-          {% for habit_info in habits %}
-            {% with habit=habit_info.habit count=habit_info.done_count %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <strong><i class="fas {{ goal.icon }}"></i> {{ goal.title }}</strong>
+      </div>
+      <div class="card-body">
+        {% if habits %}
+          <ul class="list-unstyled">
+            {% for habit_info in habits %}
+              {% with habit=habit_info.habit count=habit_info.done_count %}
               <li class="mb-3">
-                <strong><i class="fas {{ habit.icon }}"></i> {{ habit.habit_name }}</strong><br>
+                <strong><i class="fas {{ habit.goal.icon }}"></i> {{ habit.habit_name }}</strong><br>
                 <small class="text-muted">
                   実行回数: {{ habit.target_value }}{{ habit.target_unit }}（{{ habit.target_frequency }}）<br>
-                  曜日: {{ habit.schedule_days }}
+                  曜日: {{ habit.schedule_days|replace_commas_with_dot }}<br>
+                  通算達成数: {{ count }}回
                 </small><br>
 
                 <!-- 達成ボタン -->
@@ -43,27 +43,14 @@
                     ❌ 未達成
                   {% endif %}
                 </button>
-
-                <!-- コメントボタン -->
-                <button class="btn btn-sm btn-link text-decoration-none comment-btn" data-habit-id="{{ habit.id }}">
-                  ✏️ コメントを書く
-                </button>
-
-                <!-- コメントフォーム -->
-                <div class="comment-form mt-2 d-none" id="comment-form-{{ habit.id }}">
-                  <textarea class="form-control mb-2" rows="2"
-                            placeholder="習慣へのコメントを入力してください..."></textarea>
-                  <button class="btn btn-sm btn-primary submit-comment-btn" data-habit-id="{{ habit.id }}">
-                    コメント保存
-                  </button>
-                </div>
               </li>
-            {% endwith %}
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted">この目標には習慣がまだ登録されていません。</p>
-      {% endif %}
+              {% endwith %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">この目標には習慣がまだ登録されていません。</p>
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
 
@@ -90,22 +77,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("📦 toggle-habits buttons:", document.querySelectorAll(".toggle-habits"));
-
-    document.querySelectorAll(".toggle-habits").forEach(button => {
-      button.addEventListener("click", function () {
-        const goalId = this.dataset.goalId;
-        const habitGroup = document.getElementById(`habit-group-${goalId}`);
-        console.log("🎯 clicked goalId:", goalId, habitGroup);
-        if (habitGroup) {
-          habitGroup.classList.toggle("d-none");
-        } else {
-          alert(`⛔ 表示対象のhabit-group-${goalId}が見つかりません`);
-        }
-      });
-    });
-  
-
   // ✅ 習慣の達成トグル
   document.querySelectorAll(".toggle-btn").forEach(button => {
     button.addEventListener("click", function () {
@@ -127,52 +98,6 @@ document.addEventListener("DOMContentLoaded", function () {
           this.classList.toggle("btn-success", data.completed);
           this.classList.toggle("btn-outline-secondary", !data.completed);
         }
-      });
-    });
-  });
-
-  // ✅ コメントフォーム切替
-  document.querySelectorAll(".comment-btn").forEach(button => {
-    button.addEventListener("click", function () {
-      const habitId = this.dataset.habitId;
-      const form = document.getElementById(`comment-form-${habitId}`);
-      form.classList.toggle("d-none");
-    });
-  });
-
-  // ✅ コメント保存処理
-  document.querySelectorAll(".submit-comment-btn").forEach(button => {
-    button.addEventListener("click", function () {
-      const habitId = this.dataset.habitId;
-      const form = document.getElementById(`comment-form-${habitId}`);
-      const textarea = form.querySelector("textarea");
-      const comment = textarea.value;
-      const selectedDate = document.getElementById("date-input").value;
-
-      fetch("{% url 'save_comment' %}", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: new URLSearchParams({
-          habit_id: habitId,
-          comment: comment,
-          date: selectedDate,
-        }),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          alert("コメントを保存しました！");
-          form.classList.add("d-none");
-        } else {
-          alert("保存に失敗しました: " + data.message);
-        }
-      })
-      .catch(error => {
-        alert("通信エラーが発生しました");
-        console.error("Error:", error);
       });
     });
   });
