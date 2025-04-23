@@ -77,11 +77,18 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("✅ DOM が完全に読み込まれました");
+
   // ✅ 習慣の達成トグル
   document.querySelectorAll(".toggle-btn").forEach(button => {
     button.addEventListener("click", function () {
       const habitId = this.dataset.habitId;
       const selectedDate = document.getElementById("date-input").value;
+
+      console.log("🟡 ボタンクリック:", {
+        habitId,
+        selectedDate
+      });
 
       fetch("/habits/toggle/", {
         method: "POST",
@@ -91,16 +98,27 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         body: `habit_id=${habitId}&date=${selectedDate}`
       })
-      .then(response => response.json())
+      .then(response => {
+        console.log("🔵 HTTPレスポンスステータス:", response.status);
+        return response.json();
+      })
       .then(data => {
+        console.log("🟢 レスポンスデータ:", data);
         if (data.success) {
           this.innerHTML = data.completed ? "✅ 達成" : "❌ 未達成";
           this.classList.toggle("btn-success", data.completed);
           this.classList.toggle("btn-outline-secondary", !data.completed);
+          console.log("✅ UI更新成功:", data.completed ? "達成に変更" : "未達成に変更");
+        } else {
+          console.warn("⚠️ サーバーエラー:", data.message);
         }
+      })
+      .catch(error => {
+        console.error("⛔ fetch通信エラー:", error);
       });
     });
   });
 });
 </script>
 {% endblock %}
+
