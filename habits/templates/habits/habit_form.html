@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load custom_filters %}
 {% block title %}習慣作成・編集{% endblock %}
 
 {% block content %}
@@ -17,31 +17,31 @@
     {% endfor %}
   </div>
 
-  <!-- 紐づく目標 -->
+  <!-- カテゴリー（目標） -->
   <div class="mb-3">
     <label for="{{ form.goal.id_for_label }}" class="form-label">カテゴリー</label>
-    {{ form.goal }}
+    <select name="goal" id="id_goal" class="form-select">
+      <option value="">-- カテゴリーなし --</option>
+      {% for goal in form.fields.goal.queryset %}
+        <option value="{{ goal.id }}" data-icon="{{ goal.icon }}"
+          {% if form.initial.goal and form.initial.goal == goal.id or form.instance.goal and form.instance.goal.id == goal.id %}selected{% endif %}>
+          {{ goal.title }}
+        </option>
+      {% endfor %}
+    </select>
     {% for error in form.goal.errors %}
       <div class="text-danger small">{{ error }}</div>
     {% endfor %}
   </div>
 
-  <!-- 🎯 目標（数値 + 単位 + 頻度） -->
+  <!-- 🎯 目標 -->
   <div class="mb-3">
     <label class="form-label">目標</label>
     <div class="d-flex gap-2 flex-wrap">
-      <div>
-        {{ form.target_value }}
-      </div>
-      <div>
-        {{ form.target_unit }}
-      </div>
-      <div>
-        {{ form.target_frequency }}
-      </div>
+      <div>{{ form.target_value }}</div>
+      <div>{{ form.target_unit }}</div>
+      <div>{{ form.target_frequency }}</div>
     </div>
-
-    <!-- ✨ 個別エラー表示 -->
     {% for error in form.target_value.errors %}
       <div class="text-danger small">{{ error }}</div>
     {% endfor %}
@@ -53,33 +53,24 @@
     {% endfor %}
   </div>
 
-<!-- 🗓️ 実施曜日（チェックボタン風＋全選択/全解除） -->
-<div class="mb-3">
-  <label class="form-label">実施曜日</label>
+  <!-- 🗓️ 実施曜日 -->
+  <div class="mb-3">
+    <label class="form-label">実施曜日</label>
+    <button type="button" id="select-all" class="btn btn-outline-success btn-sm ms-2">全選択</button>
+    <button type="button" id="deselect-all" class="btn btn-outline-danger btn-sm ms-2">全解除</button>
 
-  <!-- 全選択・全解除 -->
-  <button type="button" id="select-all" class="btn btn-outline-success btn-sm ms-2">全選択</button>
-  <button type="button" id="deselect-all" class="btn btn-outline-danger btn-sm ms-2">全解除</button>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% for checkbox in form.schedule_days %}
+        <label class="form-check form-check-inline">
+          {{ checkbox.tag }} {{ checkbox.choice_label }}
+        </label>
+      {% endfor %}
+    </div>
 
-  <!-- 手動で曜日を描画 -->
-  <div class="d-flex flex-wrap gap-2">
-    {% for day in "月火水木金土日" %}
-      <div class="form-check form-check-inline">
-        <input class="btn-check schedule-day" type="checkbox" name="schedule_days"
-               value="{{ day }}"
-               id="schedule_{{ day }}"
-               {% if day in form.data.schedule_days or day in form.initial.schedule_days %}checked{% endif %}>
-        <label class="btn btn-outline-primary btn-sm" for="schedule_{{ day }}">{{ day }}</label>
-      </div>
+    {% for error in form.schedule_days.errors %}
+      <div class="text-danger small">{{ error }}</div>
     {% endfor %}
   </div>
-
-  {% for error in form.schedule_days.errors %}
-    <div class="text-danger small">{{ error }}</div>
-  {% endfor %}
-</div>
-
-
 
   <!-- 🌟 アイコン -->
   <div class="mb-3">
@@ -90,14 +81,16 @@
     {% endfor %}
   </div>
 
-  <!-- ✅ 保存・戻る -->
+  <!-- ✅ 保存ボタン -->
   <button type="submit" class="btn btn-primary">保存</button>
   <a href="{% url 'habit_list' %}" class="btn btn-secondary">戻る</a>
 </form>
 
+
+<!-- ✅ JavaScript -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const checkboxes = document.querySelectorAll('.schedule-day'); // ← class指定に変更！
+    const checkboxes = document.querySelectorAll('.schedule-day');
 
     document.getElementById("select-all").addEventListener("click", () => {
       checkboxes.forEach(cb => cb.checked = true);
@@ -106,17 +99,26 @@
     document.getElementById("deselect-all").addEventListener("click", () => {
       checkboxes.forEach(cb => cb.checked = false);
     });
+
+    const goalSelect = document.getElementById("id_goal");
+    const iconSelect = document.getElementById("id_icon");
+    if (goalSelect && iconSelect) {
+      goalSelect.addEventListener("change", function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const iconValue = selectedOption.getAttribute("data-icon");
+        if (iconValue) iconSelect.value = iconValue;
+      });
+    }
   });
 
   function validateAndConfirm(event) {
     const form = event.target.closest("form");
-    const requiredFields = form.querySelectorAll("input[required], select[required], textarea[required]");
-    let isValid = true;
+    const requiredFields = Array.from(form.querySelectorAll("input[required], select[required], textarea[required]"))
+      .filter(field => field.name !== "goal");
 
+    let isValid = true;
     requiredFields.forEach(field => {
-      if (!field.value.trim()) {
-        isValid = false;
-      }
+      if (!field.value.trim()) isValid = false;
     });
 
     if (!isValid) {
@@ -128,5 +130,4 @@
     return confirm("本当にこの内容で保存しますか？");
   }
 </script>
-
 {% endblock %}

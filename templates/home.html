@@ -18,51 +18,68 @@
   {% for goal, habits in goal_habit_map.items %}
     <div class="card mb-3">
       <div class="card-header">
-        <strong><i class="fas {{ goal.icon }}"></i> {{ goal.title }}</strong>
-      </div>
-      <div class="card-body">
-        {% if habits %}
-          <ul class="list-unstyled">
-            {% for habit_info in habits %}
-              {% with habit=habit_info.habit count=habit_info.done_count %}
-              <li class="mb-3">
-                <strong><i class="fas {{ habit.goal.icon }}"></i> {{ habit.habit_name }}</strong><br>
-                <small class="text-muted">
-                  実行回数: {{ habit.target_value }}{{ habit.target_unit }}（{{ habit.target_frequency }}）<br>
-                  曜日: {{ habit.schedule_days|replace_commas_with_dot }}<br>
-                  通算達成数: {{ count }}回
-                </small><br>
-
-                <!-- 達成ボタン -->
-                <button class="btn btn-sm toggle-btn {% if log_map|dict_get:habit.id %}btn-success{% else %}btn-outline-secondary{% endif %}"
-                        data-habit-id="{{ habit.id }}"
-                        data-selected-date="{{ selected_date }}">
-                  {% if log_map|dict_get:habit.id %}
-                    ✅ 達成
-                  {% else %}
-                    ❌ 未達成
-                  {% endif %}
-                </button>
-              </li>
-              {% endwith %}
-            {% endfor %}
-          </ul>
+        {% if goal %}
+          <strong><i class="fas {{ goal.icon }}"></i> {{ goal.title }}</strong>
         {% else %}
-          <p class="text-muted">この目標には習慣がまだ登録されていません。</p>
+          <strong>📂 その他の習慣</strong>
+        {% endif %}
+
+        {% if not habits %}
+          <span class="text-muted ms-2">
+            {% if goal %}
+              {% if today_weekday_in_goal_days|get_item:goal.id %}
+                （この目標には習慣がまだ登録されていません。）
+              {% else %}
+                （本日の習慣はありません）
+              {% endif %}
+            {% else %}
+              （まだ登録されていません）
+            {% endif %}
+          </span>
         {% endif %}
       </div>
+
+      {% if habits %}
+      <div class="card-body">
+        <ul class="list-unstyled">
+          {% for habit_info in habits %}
+            {% with habit=habit_info.habit count=habit_info.done_count %}
+            <li class="mb-3">
+              <strong>
+                {% if habit.goal %}<i class="fas {{ habit.goal.icon }}"></i>{% endif %} {{ habit.habit_name }}
+              </strong><br>
+              <small class="text-muted">
+                実行回数: {{ habit.target_value }}{{ habit.target_unit }}（{{ habit.target_frequency }}）<br>
+                曜日: {{ habit.schedule_days|replace_commas_with_dot }}<br>
+                通算達成数: {{ count }}回
+              </small><br>
+              <button class="btn btn-sm toggle-btn {% if log_map|get_item:habit.id %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                      data-habit-id="{{ habit.id }}"
+                      data-selected-date="{{ selected_date }}"
+                      {% if selected_date|date:'Ymd' > today|date:'Ymd' %}disabled{% endif %}>
+                {% if log_map|get_item:habit.id %}
+                  ✅ 達成
+                {% else %}
+                  ❌ 未達成
+                {% endif %}
+              </button>
+            </li>
+            {% endwith %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
     </div>
   {% endfor %}
 
   <hr>
-
   <h4><i class="bi bi-journal-text"></i> 今日の振り返りメモ</h4>
   <form method="post" action="{% url 'save_summary_note' %}" class="mt-2">
     {% csrf_token %}
     <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
     <textarea name="note" class="form-control mb-2" rows="3"
-              placeholder="今日1日の感想・気づき・反省などを記録...">{% if daily_report %}{{ daily_report.note }}{% endif %}</textarea>
-    <button type="submit" class="btn btn-primary">メモを保存</button>
+              placeholder="今日1日の感想・気づき・反省などを記録..." {% if selected_date > today %}disabled{% endif %}>{% if daily_report %}{{ daily_report.note }}{% endif %}</textarea>
+    <button type="submit" class="btn btn-primary" {% if selected_date > today %}disabled{% endif %}>メモを保存</button>
   </form>
 
   {% if daily_report and daily_report.note %}
@@ -77,18 +94,12 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("✅ DOM が完全に読み込まれました");
-
-  // ✅ 習慣の達成トグル
   document.querySelectorAll(".toggle-btn").forEach(button => {
     button.addEventListener("click", function () {
+      if (this.disabled) return;
+
       const habitId = this.dataset.habitId;
       const selectedDate = document.getElementById("date-input").value;
-
-      console.log("🟡 ボタンクリック:", {
-        habitId,
-        selectedDate
-      });
 
       fetch("/habits/toggle/", {
         method: "POST",
@@ -98,27 +109,19 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         body: `habit_id=${habitId}&date=${selectedDate}`
       })
-      .then(response => {
-        console.log("🔵 HTTPレスポンスステータス:", response.status);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log("🟢 レスポンスデータ:", data);
         if (data.success) {
           this.innerHTML = data.completed ? "✅ 達成" : "❌ 未達成";
           this.classList.toggle("btn-success", data.completed);
           this.classList.toggle("btn-outline-secondary", !data.completed);
-          console.log("✅ UI更新成功:", data.completed ? "達成に変更" : "未達成に変更");
         } else {
-          console.warn("⚠️ サーバーエラー:", data.message);
+          console.warn("サーバーエラー:", data.message);
         }
       })
-      .catch(error => {
-        console.error("⛔ fetch通信エラー:", error);
-      });
+      .catch(error => console.error("fetch通信エラー:", error));
     });
   });
 });
 </script>
 {% endblock %}
-

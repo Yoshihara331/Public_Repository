@@ -29,10 +29,14 @@ def habit_create(request):
         if form.is_valid():
             habit = form.save(commit=False)
             habit.user = request.user
+
+            # ✅ goalがある＆iconが未設定なら、goal.iconを代入
+            if not habit.icon and habit.goal:
+                habit.icon = habit.goal.icon
+
             habit.save()
             return redirect('habit_list')
     else:
-        # 🔽 追加：GETパラメータ goal=3 などがある場合、それを初期値にする
         goal_id = request.GET.get('goal')
         initial = {}
         if goal_id:
@@ -49,21 +53,21 @@ def habit_create(request):
 @login_required
 def habit_edit(request, habit_id):
     habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+
     if request.method == 'POST':
         form = HabitForm(request.POST, instance=habit, user=request.user)
         if form.is_valid():
             habit = form.save(commit=False)
-            if not habit.icon:
+            if not habit.icon and habit.goal:
                 habit.icon = habit.goal.icon
             habit.save()
             return redirect('habit_list')
     else:
-        initial_data = {
-            'schedule_days': habit.schedule_days.split(','),
-        }
-        form = HabitForm(instance=habit, initial=initial_data, user=request.user)
+        form = HabitForm(instance=habit, user=request.user)  # ← ここで initial は渡さない！
 
     return render(request, 'habits/habit_form.html', {'form': form})
+
+
 
 
 @login_required
@@ -91,7 +95,6 @@ def toggle_habit_log(request):
         except Habit.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Habit not found'}, status=404)
 
-        # ✅ habit + user + date で1日1レコードを厳密に取得/作成
         report, created = DailyReport.objects.get_or_create(
             user=request.user,
             goal=habit.goal,
@@ -102,7 +105,6 @@ def toggle_habit_log(request):
             }
         )
 
-        # ✅ 状態トグルして保存
         report.status = not report.status
         report.save()
 

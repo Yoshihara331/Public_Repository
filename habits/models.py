@@ -4,16 +4,12 @@ from goals.models import Goal
 
 class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    goal = models.ForeignKey(Goal, on_delete=models.CASCADE)
+    goal = models.ForeignKey(Goal, on_delete=models.CASCADE, null=True, blank=True)
     habit_name = models.CharField(max_length=100)
 
-    # 実施曜日（カンマ区切りで保存）
-    schedule_days = models.CharField(max_length=50)
-
-    # 習慣に対する目標値
+    schedule_days = models.CharField(max_length=50)  # ← カンマ区切りで保存（例: "月,火,水"）
     target_value = models.PositiveIntegerField(default=1)
 
-    # 頻度の選択肢
     FREQ_CHOICES = [
         ('1日あたり', '1日あたり'),
         ('1週間あたり', '1週間あたり'),
@@ -25,32 +21,23 @@ class Habit(models.Model):
         default='1日あたり'
     )
 
-    # 単位の選択肢
     UNIT_CHOICES = [
-        ('回', '回'),
-        ('分', '分'),
-        ('時間', '時間'),
-        ('ml', 'ミリリットル'),
-        ('l', 'リットル'),
-        ('km', 'キロメートル'),
-        ('mile', 'マイル'),
-        ('㎎', 'グラム'),
+        ('回', '回'), ('分', '分'), ('時間', '時間'),
+        ('ml', 'ミリリットル'), ('l', 'リットル'),
+        ('km', 'キロメートル'), ('mile', 'マイル'), ('㎎', 'グラム'),
     ]
     target_unit = models.CharField(max_length=20, choices=UNIT_CHOICES, default='回')
 
-    # タイムスタンプ
+    icon = models.CharField(max_length=50, default='fa-star')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    def save(self, *args, **kwargs):
-        # ✅ フォームから来たときに schedule_days がリストだったら、文字列に変換
-        if isinstance(self.schedule_days, list):
-            self.schedule_days = ','.join(self.schedule_days)
-        super().save(*args, **kwargs)
-
     def __str__(self):
-        return f"{self.habit_name}（{self.target_value}{self.target_unit}）"
+        goal_name = self.goal.goal_title if self.goal else "未分類"
+        return f"{goal_name} - {self.habit_name}（{self.target_value}{self.target_unit}）"
+
 
 class DailyReport(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

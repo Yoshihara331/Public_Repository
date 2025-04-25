@@ -9,40 +9,35 @@ from habits.models import Habit, DailyReport
 
 @login_required
 def home(request):
-    # ✅ 日付の取得
     date_str = request.GET.get('date')
     if date_str:
-        selected_date = datetime.strptime(str(date_str), "%Y-%m-%d").date()
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
     else:
         selected_date = timezone.localdate()
 
-    # 曜日（日本語表記）を取得
-    weekday = selected_date.weekday()  # 0:月 〜 6:日
+    today = timezone.localdate()
+    weekday = selected_date.weekday()
     weekday_ja = ['月', '火', '水', '木', '金', '土', '日'][weekday]
 
-    # ✅ goal, habit を取得（論理削除済みは除外）
     goals = Goal.objects.filter(user=request.user)
     goal_habit_map = {}
     log_map = {}
+    today_weekday_in_goal_days = {}
 
+    # ✅ カテゴリーありの習慣処理
     for goal in goals:
-        habits = Habit.objects.filter(goal=goal, deleted_at__isnull=True, schedule_days__contains=weekday_ja)
+        habits = Habit.objects.filter(goal=goal, user=request.user, deleted_at__isnull=True)
+        has_schedule_today = any(weekday_ja in habit.schedule_days for habit in habits)
+        today_weekday_in_goal_days[goal.id] = not has_schedule_today
+
+        filtered_habits = habits.filter(schedule_days__contains=weekday_ja)
         habit_list = []
 
-        for habit in habits:
-            # ✅ 達成ログ確認
-            report = DailyReport.objects.filter(
-                user=request.user,
-                habit=habit,
-                date=selected_date
-            ).first()
-
+        for habit in filtered_habits:
+            report = DailyReport.objects.filter(user=request.user, habit=habit, date=selected_date).first()
             is_done = report.status if report else False
             log_map[habit.id] = is_done
-
-            # ✅ 達成回数カウント
             count = DailyReport.objects.filter(habit=habit, status=True).count()
-
             habit_list.append({
                 'habit': habit,
                 'done_count': count,
@@ -50,7 +45,25 @@ def home(request):
 
         goal_habit_map[goal] = habit_list
 
-    # ✅ 日報（note, commentの保存用）も取得（goal/habitなし）
+    # ✅ カテゴリーなし（goal=None）の習慣
+    other_habits = Habit.objects.filter(goal__isnull=True, user=request.user, deleted_at__isnull=True)
+    other_list = []
+
+    for habit in other_habits:
+        if weekday_ja not in habit.schedule_days:
+            continue
+
+        report = DailyReport.objects.filter(user=request.user, habit=habit, date=selected_date).first()
+        is_done = report.status if report else False
+        log_map[habit.id] = is_done
+        count = DailyReport.objects.filter(habit=habit, status=True).count()
+        other_list.append({
+            'habit': habit,
+            'done_count': count,
+        })
+
+    goal_habit_map[None] = other_list  # ✅ Noneキーで格納（その他の習慣）
+
     daily_report = DailyReport.objects.filter(
         user=request.user,
         date=selected_date,
@@ -64,7 +77,11 @@ def home(request):
         'weekday_ja': weekday_ja,
         'log_map': log_map,
         'daily_report': daily_report,
+        'today_weekday_in_goal_days': today_weekday_in_goal_days,
+        'today': today,
     })
+
+# ---------------------------------------------
 
 @csrf_protect
 @login_required
@@ -94,6 +111,8 @@ def save_summary_note(request):
             report.save()
 
         return redirect(f"/?date={target_date}")
+
+# ---------------------------------------------
 
 @csrf_exempt
 @login_required
@@ -126,6 +145,8 @@ def save_comment(request):
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False, 'message': 'POSTメソッドのみ対応'}, status=405)
+
+# ---------------------------------------------
 
 def custom_404_view(request, exception):
     return render(request, 'errors/404.html', status=404)
